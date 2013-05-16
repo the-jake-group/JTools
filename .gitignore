@@ -63,5 +63,4 @@ environment/staging_env.php
 environment/development_env.php
 environment/mt_db.php
 
-assets_old
-assets_old/*
+Docs/
