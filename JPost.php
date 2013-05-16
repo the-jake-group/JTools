@@ -1,18 +1,18 @@
 <?php
 
 /**
-* J_Post is a class for extending the functionality of the Wordpress Post object.
-*
-* J_Post provides a number of methods for accessing commonly used
-* data that is associated with but not immediately accessible to a
-* Wordpress Post Object.
-*
-* @package  J_Post
-* @author   Lawson Kurtz
-* @author   Tyler Bruffy
-* @version  Revision: 1.0
-* @access   public
-*/
+ * J_Post is a class that extends the functionality of the WordPress Post object.
+ *
+ * J_Post provides a number of methods for accessing commonly used data that is
+ * associated with, but not immediately accessible to, a WordPress Post object.
+ *
+ * @package  J_Post
+ * @author   Lawson Kurtz
+ * @author   Tyler Bruffy
+ * @version  Revision: 1.0
+ * @access   public
+ */
+
 class J_Post {
 	public static $tests;
 	public static $partials;
@@ -30,6 +30,7 @@ class J_Post {
 
 	/**
 	 * Register a test format.
+	 *
 	 * @param  string   $name   The name of the test.
 	 * @param  function $lambda The function that will return the test.
 	 * @return boolean          Always returns true.
@@ -42,6 +43,7 @@ class J_Post {
 
 	/**
 	 * Register a post partial format.
+	 *
 	 * @param  string   $name   The name of the partial.
 	 * @param  function $lambda The function that will return the HTML partial.
 	 * @return boolean          Always returns true.
@@ -54,10 +56,11 @@ class J_Post {
 
 	/**
 	 * Register an HTML post format.
-	 * @param  string    $name    The name of the post format to register.
-	 * @param  function  $lambda  The function that will return the HTML of the format.
-	 * @param  boolean   $default Whether or not this should be the default format for a J_Post object.
-	 * @return boolean            Always returns true.
+	 *
+	 * @param  string   $name    The name of the post format to register.
+	 * @param  function $lambda  The function that will return the HTML of the format.
+	 * @param  boolean  $default Whether or not this should be the default format for a J_Post object.
+	 * @return boolean           Always returns true.
 	 */
 	public static function register_format( $name, $lambda, $default = false ) {
 		self::$formats[ $name ] = $lambda;
@@ -70,9 +73,10 @@ class J_Post {
 
 
 	/**
-	 * Create a J_Post from a Wordpress Post Object.
-	 * @param Object $post    Wordpress Post Object.
-	 * @param mixed  $preload Whether to preload the meta data, permalink and exceprt.
+	 * Create a J_Post from a WordPress Post object.
+	 *
+	 * @param object $post    WordPress Post object.
+	 * @param mixed  $preload Whether to preload the metadata, permalink and excerpt.
 	 */
 	public function __construct( $post, $preload = null ) {
 		if( ! is_a( $post, 'WP_Post' ) )
@@ -99,6 +103,7 @@ class J_Post {
 
 	/**
 	 * Call a method.
+	 *
 	 * @param  string $method_name The name of the method to call.
 	 * @param  mixed  $arguments   The arguments to pass to the method.
 	 * @return mixed               Returns the value of the method, or false if the method was not found.
@@ -123,6 +128,7 @@ class J_Post {
 
 	/**
 	 * Get a property of the current post.
+	 *
 	 * @param  string $name The property to return.
 	 * @return mixed        The value of the requested property.
 	 */
@@ -133,6 +139,7 @@ class J_Post {
 
 	/**
 	 * Return a string representation of the post.
+	 *
 	 * @param  string $format A post format that has been registered with the Post.
 	 * @return string         The HTML string representation of the post.
 	 */
@@ -150,8 +157,9 @@ class J_Post {
 
 
 	/**
-	 * Set CSS Classes and their context for a J_Post instance.
-	 * @param string $class_name The CSS Class to set.
+	 * Set CSS classes and their context for a J_Post instance.
+	 *
+	 * @param string $class_name The CSS class to set.
 	 * @param string $context    The context for that class.
 	 */
 	public function set_classes( $class_name, $context = null ) {
@@ -165,6 +173,7 @@ class J_Post {
 
 	/**
 	 * Return the CSS classes associated with a J_Post instance.
+	 *
 	 * @param  string $context The context set on the classes, so that classes for specific HTML elements can be retrieved.
 	 * @return string          The CSS classes for the given context.
 	 */
@@ -185,11 +194,12 @@ class J_Post {
 
 
 	/**
-	 * Retrive posts connected to the current post via the Posts to Posts plugin.
-	 * @param  string $connection_type                   A registered posts-to-posts connection type.
-	 * @param  array $additional_post_list_query_params  An array of additional Wordpress query paramaters.
-	 * @param  array $post_list_options                  Additional parameters to pass to the J_Postlist class.
-	 * @return Object                                    A J_Postlist object of connected posts.
+	 * Retrieve posts connected to the current post via the Posts 2 Posts plugin.
+	 *
+	 * @param  string $connection_type                  A registered posts-to-posts connection type.
+	 * @param  array $additional_post_list_query_params An array of additional Wordpress query paramaters.
+	 * @param  array $post_list_options                 Additional parameters to pass to the J_Postlist class.
+	 * @return object                                   A J_Postlist object of connected posts.
 	 */
 	public function connected_posts( $connection_type = null, $additional_post_list_query_params = null, $post_list_options = null ) {
 		if( is_null( $additional_post_list_query_params ) )
@@ -210,11 +220,12 @@ class J_Post {
 
 
 	/**
-	 * Get an exceprt for the current post.
-	 * @param  array  $more_link_options Options for the more_link of J_Excerpt. (Options include: text, title, template, and class.)
-	 * @param  int  $excerpt_length       The length of the excerpt to return.
+	 * Get an excerpt for the current post.
+	 *
+	 * @param  array   $more_link_options Options for the more_link of J_Excerpt. (Options include: text, title, template, and class.)
+	 * @param  int     $excerpt_length    The length of the excerpt to return.
 	 * @param  boolean $show_more_link    Whether the returned HTML should include a more link.
-	 * @return string                     Returns the display HTML of the J_Exceprt Object.
+	 * @return string                     Returns the display HTML of the J_Excerpt object.
 	 */
 	public function excerpt( $more_link_options = null, $excerpt_length = null, $show_more_link = true ) {
 		if( ! isset( $this->excerpt ) )
@@ -229,6 +240,7 @@ class J_Post {
 
 	/**
 	 * Retrieve metadata associated with the current post.
+	 *
 	 * @param  string  $meta_key        The meta key you wish to return.
 	 * @param  boolean $single          Whether to return a string or not.
 	 * @param  string  $meta_key_prefix The prefix for the meta_key.
@@ -244,7 +256,8 @@ class J_Post {
 
 
 	/**
-	 * Get the permalink of the Post.
+	 * Get the permalink of the post.
+	 *
 	 * @param  boolean $apply_filters Whether or not to apply "the_permalink" filters before returning.
 	 * @return string                 The permalink of the post.
 	 */
@@ -260,7 +273,8 @@ class J_Post {
 
 
 	/**
-	 * Get the title of the post
+	 * Get the title of the post.
+	 *
 	 * @param  boolean $apply_filters Whether to apply "the_title" filters before returning.
 	 * @return string                 The title of the post.
 	 */
@@ -274,7 +288,8 @@ class J_Post {
 
 
 	/**
-	 * Get the content of a post
+	 * Get the content of a post.
+	 *
 	 * @param  boolean $apply_filters Whether to apply "the_content" filters before returning.
 	 * @return string                 The content of the post.
 	 */
@@ -289,34 +304,35 @@ class J_Post {
 
 	/**
 	 * Return data about the author of the post.
+	 *
 	 * @param  string $field The field name to return.
-	 * Acceptedvalues for $field are: 
-	 * user_login
-	 * user_pass
-	 * user_nicename
-	 * user_email
-	 * user_url
-	 * user_registered
-	 * user_activation_key
-	 * user_status
-	 * display_name
-	 * nickname
-	 * first_name
-	 * last_name
-	 * description (Biographical Info from the user's profile)
-	 * jabber
-	 * aim
-	 * yim
-	 * user_level
-	 * user_firstname
-	 * user_lastname
-	 * user_description
-	 * rich_editing
-	 * comment_shortcuts
-	 * admin_color
-	 * plugins_per_page
-	 * plugins_last_view
-	 * ID
+	 *                       Accepted values for $field are: 
+	 *                       - user_login
+	 *                       - user_pass
+	 *                       - user_nicename
+	 *                       - user_email
+	 *                       - user_url
+	 *                       - user_registered
+	 *                       - user_activation_key
+	 *                       - user_status
+	 *                       - display_name
+	 *                       - nickname
+	 *                       - first_name
+	 *                       - last_name
+	 *                       - description (biographical info from the user's profile)
+	 *                       - jabber
+	 *                       - aim
+	 *                       - yim
+	 *                       - user_level
+	 *                       - user_firstname
+	 *                       - user_lastname
+	 *                       - user_description
+	 *                       - rich_editing
+	 *                       - comment_shortcuts
+	 *                       - admin_color
+	 *                       - plugins_per_page
+	 *                       - plugins_last_view
+	 *                       - ID
 	 * @return mixed        The value of the requested field, if it exists.
 	 */
 	public function author( $field = 'display_name' ) {
@@ -336,10 +352,10 @@ class J_Post {
 	 * the dimensions, and then will apply width and height attributes to match the values
 	 * given.
 	 * 
-	 * @param  mixed $image_size  The name of a registered WP thumbnail size, or an array containing the width/height.
-	 * Default: 'post-thumbnail'.
+	 * @param  mixed  $image_size  The name of a registered WP thumbnail size, or an array containing the width/height.
+	 *                             Default: 'post-thumbnail'.
 	 * @param  string $image_class The css class(es) to attach to the returned html
-	 * @return mixed              Returns an html IMG tag as a string if the post has a featured image.  Returns false otherwise.
+	 * @return mixed               Returns an img HTML element as a string if the post has a featured image. Otherwise returns false.
 	 */
 	public function thumbnail( $image_size = 'post-thumbnail', $image_class = 'thumbnail' ) {
 		if ( has_post_thumbnail( $this->ID ) ) {
@@ -357,8 +373,9 @@ class J_Post {
 
 
 	/**
-	 * Get the author ID of the current post
-	 * @return int The numerical author ID associated with the post object.
+	 * Get the author ID of the current post.
+	 *
+	 * @return int The numerical author ID associated with the Post object.
 	 */
 	private function author_id() {
 		return $this->post->post_author;
