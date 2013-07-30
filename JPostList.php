@@ -9,7 +9,8 @@ class J_PostList {
 	private $html_list_class;
 	private $html_post_format;
 
-	private $no_posts_message = false;
+	private $no_posts_message = "No items could be found.";
+	private $show_no_posts_message = false;
 
 	private $post_classes;
 	private $variable_post_classes;
@@ -34,6 +35,10 @@ class J_PostList {
 
 			if(isset( $options['list_tag'] ) ) {
 				$this->html_list_tag = $options['list_tag'];
+			}
+
+			if(isset( $options['show_no_posts_message'] ) ) {
+				$this->no_posts_message = $options['no_posts_message'];
 			}
 
 			if(isset( $options['no_posts_message'] ) ) {
@@ -85,7 +90,7 @@ class J_PostList {
 	public function to_html( $wrapper = true ) {
 		if( $this->have_posts() ) {
 			$this->add_to_html_output( $this->list_to_html( $wrapper ) );
-		} else {
+		} elseif( $this->show_no_posts_message ) {
 			$this->add_to_html_output( $this->no_posts_message() );
 		}
 		return $this->html;
@@ -238,7 +243,7 @@ class J_PostList {
 	}
 
 	private function no_posts_message() {
-		return $this->no_posts_message ? "<div class=\"alert\">{$this->no_posts_message}</div>" : "<div class=\"alert\">No items could be found.</div>";
+		return sprintf('<div class="alert">%s</div>', $this->no_posts_message);
 	}
 
 
