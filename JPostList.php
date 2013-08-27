@@ -1,6 +1,8 @@
 <?php
 class J_PostList {
-	private $query_object;
+	public static $chunks;
+
+	public $query_object;
 
 	private $html;
 
@@ -8,13 +10,30 @@ class J_PostList {
 	private $html_list_id;
 	private $html_list_class;
 	private $html_post_format;
+	private $chunk_filters = array();
 
 	private $no_posts_message = "No items could be found.";
 	private $show_no_posts_message = false;
 
-	private $post_classes;
+	private $post_classes = array();
+	private $post_options = array();
 	private $variable_post_classes;
 	private $post_index = 0;
+
+
+	public static function register_chunk( $name, $lambda ) {
+		self::$chunks[ $name ] = $lambda;
+	}
+
+	public function __call( $method_name, $arguments ) {
+		if( isset(self::$chunks[ $method_name ] ) ) {
+			array_unshift( $arguments, $this );
+			return call_user_func_array( self::$chunks[ $method_name ], $arguments );
+		} else {
+			return false;
+		}
+	}
+
 
 	public function __construct( $query = '', $options = null ) {
 		if( is_a( $query, 'WP_Query') ) {
@@ -38,7 +57,7 @@ class J_PostList {
 			}
 
 			if(isset( $options['show_no_posts_message'] ) ) {
-				$this->no_posts_message = $options['no_posts_message'];
+				$this->show_no_posts_message = $options['show_no_posts_message'];
 			}
 
 			if(isset( $options['no_posts_message'] ) ) {
@@ -46,7 +65,6 @@ class J_PostList {
 			}
 		}
 
-		$this->post_classes = array(); 
 		$this->variable_post_classes = array(); 
 	}
 
@@ -56,6 +74,22 @@ class J_PostList {
 
 	public function set_post_classes( $class_array ) {
 		$this->post_classes = array_merge( $this->post_classes, $class_array );
+	}
+
+	public function set_post_options( $options_array ) {
+		$this->post_options = array_merge( $this->post_options, $options_array );
+	}	
+
+	public function set_chunk_filters($size, $chunk) {
+		$this->chunk_filters[$size] = $chunk;
+	}
+
+	public function add_list_class($classes, $override = false) {
+		if (is_array($classes)) {
+			$class = implode(" ", $classes);
+		}
+
+		$this->html_list_class = !$override ? $this->html_list_class." ".$classes : $classes;
 	}
 
 	public function set_variable_post_class( $function, $index = null ) {
@@ -176,6 +210,19 @@ class J_PostList {
 
 	}
 
+	private function add_post_options( &$jpost ) {
+		if( ! empty( $this->post_options ) ) {
+			foreach( $this->post_options as $index => $option ) {
+				if( is_numeric(str_replace('post', '', $index)) 
+					&& str_replace('post', '', $index ) == $this->post_index ) {
+						$jpost->add_option( $option );
+				} else {
+					$jpost->add_option( $index, $option );
+				}
+			}
+		}
+	}
+
 	// private function add_post_conditional_classes( &$jpost ) {
 	//   if( ! empty( $this->post_conditional_classes ) ) {
 	//     foreach( $this->post_conditional_classes as $class_index => $lambda ) {
@@ -198,15 +245,30 @@ class J_PostList {
 
 	private function list_items_to_html( ) {
 		$return = null;
-		while ( $this->have_posts() ):
-			$return .= $this->the_post(); global $post; $post = new J_Post( $post );
+
+		while ( $this->have_posts() ) {
+
+			$return .= $this->the_post(); 
+			
+			global $post;
+			$post = new J_Post( $post );
+
 			$this->add_post_classes( $post ); 
+			$this->add_post_options( $post );
+
+			if ( array_key_exists($this->post_index, $this->chunk_filters) ) {
+				$chunk = $this->chunk_filters[$this->post_index];
+				$return = call_user_func( self::$chunks[ $chunk ], $return );
+			}
+	
 			$return .= $this->list_item_to_html( $post );
-			$this->post_index++;
-		endwhile;
+		
+			$this->post_index++;		
+		}
 
 		return $return;
 	}
+
 
 	private function list_item_to_html( $list_item ) {
 		return $list_item->to_html( $this->html_post_format );
@@ -248,7 +310,6 @@ class J_PostList {
 
 
 	// Just for Decoupling
-
 	public function have_posts() {
 		return $this->query_object->have_posts();
 	}

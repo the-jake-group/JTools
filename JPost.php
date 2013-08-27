@@ -10,6 +10,7 @@ class J_Post {
 	private $meta_array;
 	private $excerpt;
 
+	private $options;
 	private $classes;
 	private $conditional_classes;
 
@@ -92,6 +93,10 @@ class J_Post {
 		}
 	}
 
+	public function add_option( $index, $option ) {
+		return $this->options[$index] = $option;
+	}
+
 	// public function add_conditional_class( $lambda, $index = null ) {
 	//   // if( is_null( $index ) ) {
 	//   //   return array_push( $this->classes, $class_name );
@@ -115,6 +120,14 @@ class J_Post {
 		return $classes;
 	}
 
+	public function options( $index ) {
+		if( empty($this->options) || !isset($this->options[$index]) ) {
+			return false;
+		}
+
+		return $this->options[$index];
+	}
+
 	public function connected_posts( $connection_type = null, $additional_post_list_query_params = null, $post_list_options = null ) {
 		if( is_null( $additional_post_list_query_params ) )
 			$additional_post_list_query_params = array();
@@ -135,9 +148,6 @@ class J_Post {
 	public function excerpt( $more_link_options = null, $excerpt_length = null, $show_more_link = true ) {
 		if( ! isset( $this->excerpt ) )
 			$this->excerpt = new J_Excerpt( $this->post, $more_link_options, $excerpt_length, false, $show_more_link );
-
-		if( $apply_filters )
-			$this->excerpt = apply_filters('the_excerpt', $this->excerpt );
 
 		return $this->excerpt->display();
 	}
