@@ -161,10 +161,6 @@ class J_Post {
 		return $this->meta_array[$meta_key];
 	}
 
-	// public function linked_title() {
-	//   return sprintf( "<a href='%s' title='%s'>%s</a>", $this->permalink(), $this->post->post_title, $this->post->post_title );
-	// }
-
 	public function permalink( $apply_filters = true ) {
 		if( is_null( $this->permalink ) )
 			$this->permalink = get_permalink( $this->post->ID );
