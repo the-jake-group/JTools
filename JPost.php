@@ -3,6 +3,7 @@ class J_Post {
 	public static $tests;
 	public static $partials;
 	public static $formats;
+	public static $meta_prefix = "";
 
 	// For memoization
 	private $post;
@@ -29,6 +30,10 @@ class J_Post {
 		if( $default )
 			self::$formats[ 'default' ] = $lambda;
 	}
+
+	public static function set_meta_prefix( $prefix ) {
+		self::$meta_prefix = $prefix;
+	}	
 
 	public function __construct( $post, $preload = null ) {
 		if( ! is_a( $post, 'WP_Post' ) )
@@ -152,9 +157,11 @@ class J_Post {
 		return $this->excerpt->display();
 	}
 
-	public function meta( $meta_key, $single = false, $meta_key_prefix = "wpcf-" ) {
-	 
+	public function meta( $meta_key, $single = false, $meta_key_prefix = false ) {
+		$meta_key_prefix = ($meta_key_prefix !== false) ? $meta_key_prefix : self::$meta_prefix;
+		
 		$meta_key = $meta_key_prefix . $meta_key;
+
 		if( !isset( $this->meta_array[$meta_key] ) ) {
 			$this->meta_array[$meta_key] = get_post_meta( $this->post->ID, $meta_key, $single );
 		}
