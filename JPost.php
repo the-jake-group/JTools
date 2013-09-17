@@ -168,6 +168,7 @@ class J_Post {
 		return $this->meta_array[$meta_key];
 	}
 
+
 	public function permalink( $apply_filters = true ) {
 		if( is_null( $this->permalink ) )
 			$this->permalink = get_permalink( $this->post->ID );
@@ -248,6 +249,15 @@ class J_Post {
 		}
 	}
 
+	public function get_ancestor_id( $level = 1 ) {
+		$parents = get_post_ancestors( $this->ID );
+		return ($parents) ? $parents[count($parents) -$level]: $this->ID;
+	}
+
+	public function get_parent_id() {
+		return ($this->post_parent) ? $this->post_parent : $this->ID;
+	}
+
 	public function thumbnail( $image_size = 'post-thumbnail', $image_class = 'thumbnail' ) {
 		/*
 		Image Size Options
@@ -275,5 +285,9 @@ class J_Post {
 
 	private function author_id() {
 		return $this->post->post_author;
+	}
+
+	public function date( $format = "n.j.y" ) {
+		return date($format, strtotime($this->post_date));
 	}
 }
