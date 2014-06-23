@@ -3,6 +3,7 @@ class J_Post {
 	public static $tests;
 	public static $partials;
 	public static $formats;
+	public static $meta_prefix = "";
 
 	// For memoization
 	private $post;
@@ -29,6 +30,10 @@ class J_Post {
 		if( $default )
 			self::$formats[ 'default' ] = $lambda;
 	}
+
+	public static function set_meta_prefix( $prefix ) {
+		self::$meta_prefix = $prefix;
+	}	
 
 	public function __construct( $post, $preload = null ) {
 		if( ! is_a( $post, 'WP_Post' ) )
@@ -145,25 +150,26 @@ class J_Post {
 		return new J_PostList( $query_parameters, $post_list_options );
 	}
 
-	public function excerpt( $more_link_options = null, $excerpt_length = null, $show_more_link = true ) {
-		if( ! isset( $this->excerpt ) )
-			$this->excerpt = new J_Excerpt( $this->post, $more_link_options, $excerpt_length, false, $show_more_link );
+	public function excerpt( $length = null, $link_args = null, $html_args = null ) {
+
+		if( !isset($this->excerpt) ) {
+			$this->excerpt = new J_Excerpt($this->post, $length, $link_args, $html_args);
+		}
 
 		return $this->excerpt->display();
 	}
 
-	public function meta( $meta_key, $single = false, $meta_key_prefix = "wpcf-" ) {
-	 
+	public function meta( $meta_key, $single = false, $meta_key_prefix = false ) {
+		$meta_key_prefix = ($meta_key_prefix !== false) ? $meta_key_prefix : self::$meta_prefix;
+		
 		$meta_key = $meta_key_prefix . $meta_key;
+
 		if( !isset( $this->meta_array[$meta_key] ) ) {
 			$this->meta_array[$meta_key] = get_post_meta( $this->post->ID, $meta_key, $single );
 		}
 		return $this->meta_array[$meta_key];
 	}
 
-	// public function linked_title() {
-	//   return sprintf( "<a href='%s' title='%s'>%s</a>", $this->permalink(), $this->post->post_title, $this->post->post_title );
-	// }
 
 	public function permalink( $apply_filters = true ) {
 		if( is_null( $this->permalink ) )
@@ -185,13 +191,14 @@ class J_Post {
 
 	public function content( $apply_filters = true ) {
 		$post_content = $this->post->post_content;
-		if( $apply_filters )
+		if( $apply_filters ) {
 			$post_content = apply_filters('the_content', $post_content);
+		}
 		
 		return $post_content;
 	}
 
-	public function author( $field = 'display_name' ) {
+	public function author( $field = 'display_name', $apply_filters = true ) {
 		/*
 		Field Options:
 		--------------
@@ -231,7 +238,7 @@ class J_Post {
 	}
 
 	public function get_terms($taxonomy, $return = 'all') {
-		$terms = wp_get_post_terms( $this->ID, $taxonomy );
+		$terms = wp_get_post_terms( $this->ID(), $taxonomy );
 
 		if ($return != "all") {
 			$items = array();
@@ -243,6 +250,15 @@ class J_Post {
 		} else {
 			return $terms;
 		}
+	}
+
+	public function get_ancestor_id( $level = 1 ) {
+		$parents = get_post_ancestors( $this->ID() );
+		return ($parents) ? $parents[count($parents) -$level]: $this->ID();
+	}
+
+	public function get_parent_id() {
+		return ($this->post_parent) ? $this->post_parent : $this->ID();
 	}
 
 	public function thumbnail( $image_size = 'post-thumbnail', $image_class = 'thumbnail' ) {
@@ -257,20 +273,54 @@ class J_Post {
 		-- OR --
 		2-item array representing width and height in pixels, e.g. array(32,32)
 		*/
-		if ( has_post_thumbnail( $this->ID ) ) {
+		if ( has_post_thumbnail( $this->ID() ) ) {
 			$attr = array(
 				'class' => $image_class,
 				'alt' => $this->post_title,
 				'title' => $this->post_title
 				);
 
-			$photo = get_the_post_thumbnail( $this->ID, $image_size, $attr );
+			$photo = get_the_post_thumbnail( $this->ID(), $image_size, $attr );
 			return $photo;
 		}
 		return false;
 	}
 
+	public function acf_repeater($field, $format, $args, $classes = array(), $post = true ) {
+		$data   = $post ? get_field($field, $this->ID()) : get_field($field, 'option');
+		$tag    = isset($args['list_tag']) ? $args['list_tag'] : "ul";
+		$output = false;
+
+		if ($data) {
+			$output = $this->html_open_tag($tag, $args);
+			
+			foreach($data as $index => $item) {
+				$class = array_key_exists("item$index", $classes) ? $classes["item$index"] : array();
+				$output .= call_user_func_array( self::$formats[ $format ], array($this, $item, $class, $index));
+			}
+
+			$output .= "</$tag>";
+		}
+
+		return $output;
+	}
+
+	private function html_open_tag( $tag, $attributes ) {
+		return "<$tag "
+			. ((isset($attributes['list_class'])) ? "class=\"{$attributes['list_class']}\" " : "")
+			. ((isset($attributes['list_id'])) ? "id=\"{$attributes['list_id']}\" " : "")
+			. ">";
+	}	
+
 	private function author_id() {
 		return $this->post->post_author;
+	}
+
+	public function date( $format = "n.j.y" ) {
+		return date($format, strtotime($this->post_date));
+	}
+
+	public function ID() {
+		return $this->post->ID;
 	}
 }

@@ -1,8 +1,9 @@
 <?php
 class J_PostList {
-	public static $chunks;
+	public static $chunks = array();
 
 	public $query_object;
+	public $array;
 
 	private $html;
 
@@ -18,30 +19,21 @@ class J_PostList {
 	private $post_classes = array();
 	private $post_options = array();
 	private $variable_post_classes;
+	private $variable_post_options;
 	private $post_index = 0;
 
+	private $has_chunks = false;
 
-	public static function register_chunk( $name, $lambda ) {
-		self::$chunks[ $name ] = $lambda;
-	}
-
-	public function __call( $method_name, $arguments ) {
-		if( isset(self::$chunks[ $method_name ] ) ) {
-			array_unshift( $arguments, $this );
-			return call_user_func_array( self::$chunks[ $method_name ], $arguments );
-		} else {
-			return false;
-		}
-	}
-
-
-	public function __construct( $query = '', $options = null ) {
+	public function __construct( $query = '', $options = null, $post_array = false ) {
 		if( is_a( $query, 'WP_Query') ) {
-			$this->query_object = $query;
+			$this->array = $query->posts;
+		} elseif ($post_array) {
+			$this->array = $query;
 		} else {
 			$this->query_object = new J_WP_Query( $query );
+			$this->array        = $this->query_object->posts;
 		}
-		
+
 		if( ! is_null( $options ) && is_array( $options ) ) {
 			
 			if( isset( $options['post_format'] ) ) {
@@ -50,6 +42,10 @@ class J_PostList {
 
 			if(isset( $options['list_class'] ) ) {
 				$this->html_list_class = $options['list_class'];
+			}
+
+			if(isset( $options['list_id'] ) ) {
+				$this->html_list_id = $options['list_id'];
 			}
 
 			if(isset( $options['list_tag'] ) ) {
@@ -65,6 +61,7 @@ class J_PostList {
 			}
 		}
 
+		$this->post_classes = array(); 
 		$this->variable_post_classes = array(); 
 	}
 
@@ -72,24 +69,31 @@ class J_PostList {
 		wp_reset_postdata();
 	}
 
-	public function set_post_classes( $class_array ) {
-		$this->post_classes = array_merge( $this->post_classes, $class_array );
+	public function __call( $method_name, $arguments ) {
+		if( isset(self::$chunks[ $method_name ] ) ) {
+			array_unshift( $arguments, $this );
+			return call_user_func_array( self::$chunks[ $method_name ], $arguments );
+		} else {
+			return false;
+		}
 	}
 
-	public function set_post_options( $options_array ) {
-		$this->post_options = array_merge( $this->post_options, $options_array );
-	}	
+	public static function register_chunk( $name, $lambda ) {
+		self::$chunks[ $name ] = $lambda;
+	}
 
 	public function set_chunk_filters($size, $chunk) {
 		$this->chunk_filters[$size] = $chunk;
 	}
 
-	public function add_list_class($classes, $override = false) {
-		if (is_array($classes)) {
-			$class = implode(" ", $classes);
-		}
+	public function set_chunk($name, $size) {
+		$this->chunk["name"] = $name;
+		$this->chunk["size"] = $size;
+		$this->has_chunks   = true;
+	}
 
-		$this->html_list_class = !$override ? $this->html_list_class." ".$classes : $classes;
+	public function set_post_classes( $class_array ) {
+		$this->post_classes = array_merge( $this->post_classes, $class_array );
 	}
 
 	public function set_variable_post_class( $function, $index = null ) {
@@ -100,6 +104,26 @@ class J_PostList {
 		}
 	}
 
+	public function set_post_options( $options_array ) {
+		$this->post_options = array_merge( $this->post_options, $options_array );
+	}	
+
+	public function set_variable_post_option( $function, $index = null ) {
+		if( is_null( $index ) ) {
+			return array_push( $this->variable_post_options, $function ); 
+		} else {
+			return $this->variable_post_options[ $index ] = $function;
+		}
+	}
+
+	public function add_list_class($classes, $override = false) {
+		if (is_array($classes)) {
+			$class = implode(" ", $classes);
+		}
+
+		$this->html_list_class = !$override ? $this->html_list_class." ".$classes : $classes;
+	}
+
 	public function max_num_pages() {
 		return $this->query_object->max_num_pages;
 	}
@@ -107,26 +131,14 @@ class J_PostList {
 	private function add_to_html_output( $string ) {
 		$this->html .= $string;
 	}
-
-	// Not working properly
-	// public function each_post( $lambda ) {
-	//   if( ! empty( $this->query_object->posts ) ) {
-	//     foreach( $this->query_object->posts as $pre_post ) {
-	//       $jpost = new J_Post( $pre_post );
-	//       call_user_func_array( $lambda, array($jpost) );
-	//       $pre_post = $jpost;
-	//     }
-	//   } 
-	// }
-
-	// View-y functions
 	
 	public function to_html( $wrapper = true ) {
-		if( $this->have_posts() ) {
-			$this->add_to_html_output( $this->list_to_html( $wrapper ) );
+		if( $this->have_posts() || !empty($this->array) ) {
+			$this->add_to_html_output( $this->maybe_chunk( $wrapper ) );
 		} elseif( $this->show_no_posts_message ) {
 			$this->add_to_html_output( $this->no_posts_message() );
 		}
+		wp_reset_postdata();
 		return $this->html;
 	}
 
@@ -221,54 +233,68 @@ class J_PostList {
 				}
 			}
 		}
-	}
-
-	// private function add_post_conditional_classes( &$jpost ) {
-	//   if( ! empty( $this->post_conditional_classes ) ) {
-	//     foreach( $this->post_conditional_classes as $class_index => $lambda ) {
-	//       if( is_numeric( $class_index ) ) {
-	//         $jpost->add_conditional_class( $lambda );
-	//       } else {
-	//         $jpost->add_conditional_class( $lambda, $class_index );
-	//       }
-	//     }
-	//   }
-	// }
-
-	private function list_to_html( $wrapper ) {
-		if( $wrapper ) {
-			return $this->html_open_list_tag() . $this->list_items_to_html() . $this->html_close_list_tag(); 
-		} else {
-			return $this->list_items_to_html();
-		}
-	}
-
-	private function list_items_to_html( ) {
-		$return = null;
-
-		while ( $this->have_posts() ) {
-
-			$return .= $this->the_post(); 
-			
-			global $post;
-			$post = new J_Post( $post );
-
-			$this->add_post_classes( $post ); 
-			$this->add_post_options( $post );
-
-			if ( array_key_exists($this->post_index, $this->chunk_filters) ) {
-				$chunk = $this->chunk_filters[$this->post_index];
-				$return = call_user_func( self::$chunks[ $chunk ], $return );
+		if( ! empty( $this->variable_post_options ) ) {
+			foreach( $this->variable_post_options as $index => $function ) {
+				if( is_numeric( $index ) ) {
+					$jpost->add_option( call_user_func_array( $function, array( $jpost ) ) );
+				} else {
+					$jpost->add_option($index, call_user_func_array( $function, array($jpost) ));
+				}
 			}
-	
-			$return .= $this->list_item_to_html( $post );
-		
-			$this->post_index++;		
 		}
 
+	}
+
+	private function maybe_chunk( $wrapper ) {
+		$output = null;
+		if ($this->has_chunks) {
+			$chunks = array_chunk($this->array, $this->chunk["size"]);
+			foreach ($chunks as $index => $chunk) {
+				$output .= call_user_func_array( 
+					self::$chunks[ $this->chunk["name"] ], 
+					array(
+						$this->list_to_html( $chunk, $wrapper ),
+						$index
+					) 
+				);
+			}
+		} else {
+			$output = $this->list_to_html( $this->array, $wrapper );
+		}
+		return $output;
+	}
+
+	private function list_to_html( $array, $wrapper ) {
+		if( $wrapper ) {
+			return $this->html_open_list_tag() . $this->list_items_to_html($array) . $this->html_close_list_tag(); 
+		} else {
+			return $this->list_items_to_html($array);
+		}
+	}
+
+	private function list_items_to_html( $posts ) {
+		$return = null;
+		// if (!empty($this->array)) {
+		if ( true ) {
+			foreach($posts as $index => $post_obj) {
+				global $post;
+				$new_post = new J_Post( $post_obj );
+				$this->add_post_classes( $new_post ); 
+				$this->add_post_options( $new_post ); 
+				$return .= $this->list_item_to_html( $new_post );
+				$this->post_index++;
+			}
+		} else {
+			while ( $this->have_posts() ):
+				$return .= $this->the_post(); global $post; $new_post = new J_Post( $post );
+				$this->add_post_classes( $new_post ); 
+				$this->add_post_options( $new_post ); 
+				$return .= $this->list_item_to_html( $new_post );
+				$this->post_index++;
+			endwhile;
+		}
 		return $return;
 	}
-
 
 	private function list_item_to_html( $list_item ) {
 		return $list_item->to_html( $this->html_post_format );
@@ -305,13 +331,14 @@ class J_PostList {
 	}
 
 	private function no_posts_message() {
-		return sprintf('<div class="alert">%s</div>', $this->no_posts_message);
+		return $this->no_posts_message ? "<div class=\"alert\">{$this->no_posts_message}</div>" : "<div class=\"alert\">No items could be found.</div>";
 	}
 
 
 	// Just for Decoupling
+
 	public function have_posts() {
-		return $this->query_object->have_posts();
+		return $this->query_object ? $this->query_object->have_posts() : false;
 	}
 
 	private function the_post() {
