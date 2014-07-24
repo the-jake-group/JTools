@@ -15,6 +15,7 @@ class J_Utility {
 
 	public static function load_classes_in_order() {
 		$class_filenames = array(
+			'JWPQuery',
 			'JExcerpt',
 			'JPost',
 			'JPostFormats',
