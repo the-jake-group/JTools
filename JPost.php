@@ -78,13 +78,13 @@ class J_Post {
 		return $this->post->$name;
 	}
 
-	public function to_html( $format ) {
+	public function to_html( $format, $data = null ) {
 		if( is_string( $format ) && isset( self::$formats[ $format ] ) ) {
-			return call_user_func_array( self::$formats[ $format ], array($this) );
+			return call_user_func_array( self::$formats[ $format ], array($this, $data) );
 		} elseif( is_null( $format ) || ( is_string( $format ) && isset( self::$formats[ 'default' ] ) ) ) {
-			return call_user_func_array( self::$formats[ 'default' ], array($this) );
+			return call_user_func_array( self::$formats[ 'default' ], array($this, $data) );
 		} elseif( isset( self::$formats[ $format ] ) && is_callable( self::$formats[ $format ] ) ) {
-			return $format( $this );
+			return $format( $this, $data );
 		} else {
 			return false;
 		}
@@ -150,11 +150,9 @@ class J_Post {
 		return new J_PostList( $query_parameters, $post_list_options );
 	}
 
-	public function excerpt( $length = null, $link_args = null, $html_args = null ) {
-
-		if( !isset($this->excerpt) ) {
-			$this->excerpt = new J_Excerpt($this->post, $length, $link_args, $html_args);
-		}
+	public function excerpt( $more_link_options = null, $excerpt_length = null, $show_more_link = true ) {
+		if( ! isset( $this->excerpt ) )
+			$this->excerpt = new J_Excerpt( $this->post, $more_link_options, $excerpt_length, false, $show_more_link );
 
 		return $this->excerpt->display();
 	}
@@ -286,7 +284,7 @@ class J_Post {
 		return false;
 	}
 
-	public function acf_repeater($field, $format, $args, $classes = array(), $post = true ) {
+	public function acf_repeater($field, $format, $args, $classes = array(), $post = true, $extra = array() ) {
 		$data   = $post ? get_field($field, $this->ID()) : get_field($field, 'option');
 		$tag    = isset($args['list_tag']) ? $args['list_tag'] : "ul";
 		$output = false;
@@ -295,8 +293,8 @@ class J_Post {
 			$output = $this->html_open_tag($tag, $args);
 			
 			foreach($data as $index => $item) {
-				$class = array_key_exists("item$index", $classes) ? $classes["item$index"] : array();
-				$output .= call_user_func_array( self::$formats[ $format ], array($this, $item, $class, $index));
+				$class = $classes && array_key_exists("item$index", $classes) ? $classes["item$index"] : array();
+				$output .= call_user_func_array( self::$formats[ $format ], array($this, $item, $class, $index, $extra));
 			}
 
 			$output .= "</$tag>";
